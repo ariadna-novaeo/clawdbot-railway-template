@@ -35,6 +35,14 @@ RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
 # The echo ensures the layer fingerprint changes each build, busting Docker cache.
 RUN echo "openclaw-install-$(date +%s)" && npm install -g openclaw@latest
 
+# Fix: OpenClaw <=2026.6.5 treats pollAnonymous/pollPublic as unknown channel
+# poll params, causing ALL message sends from GPT-5.5 to fail with:
+#   "Poll fields require action 'poll'; use action 'poll' instead of 'send'."
+# Adds them to the known poll creation param defs so they are not flagged.
+# Uses wildcard for the hash suffix which changes per OpenClaw version.
+COPY scripts/patch-openclaw-poll.sh /tmp/patch-openclaw-poll.sh
+RUN bash /tmp/patch-openclaw-poll.sh && rm /tmp/patch-openclaw-poll.sh
+
 # Tell the wrapper where to find the openclaw entry point
 ENV OPENCLAW_ENTRY=/usr/local/lib/node_modules/openclaw/dist/entry.js
 ENV OPENCLAW_NODE=node
